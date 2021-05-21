@@ -1,0 +1,91 @@
+!    -*- f90 -*-
+! Author: Pearu Peterson <pearu@cens.ioc.ee>
+!
+! All Fortran functions are marked as thread safe.
+! They do not contain any DATA, SAVE, COMMON or EQUIVALENCE statements
+! and do not allocate any local arrays larger than 160 bytes.
+! In current versions of gfortran, local variables smaller than 32768 bytes
+! are allocated on the stack by default.
+! This limit can be overridden with -fmax-stack-var-size, or -frecursive can
+! be used to force all local arrays to be allocated on the stack.
+!
+python module dfitpack ! in
+
+  usercode '''
+
+#ifdef HAVE_ILP64
+typedef npy_int64 F_INT;
+#else
+typedef npy_int32 F_INT;
+#endif
+
+'''
+
+  interface
+
+     !!!!!!!!!! Univariate spline !!!!!!!!!!!
+
+     subroutine splev(t,n,c,k,x,y,m,e,ier)
+       ! y = splev(t,c,k,x,[e])
+       threadsafe
+       real*8 dimension(n),intent(in) :: t
+       integer intent(hide),depend(t) :: n=len(t)
+       real*8 dimension(n),depend(n,k),check(len(c)==n),intent(in) :: c
+       integer :: k
+       real*8 dimension(m),intent(in) :: x
+       real*8 dimension(m),depend(m),intent(out) :: y
+       integer intent(hide),depend(x) :: m=len(x)
+       integer check(0<=e && e<=2) :: e=0
+       integer intent(hide) :: ier
+     end subroutine splev
+
+     subroutine splder(t,n,c,k,nu,x,y,m,e,wrk,ier)
+       ! dy = splder(t,c,k,x,[nu],[e])
+       threadsafe
+       real*8 dimension(n) :: t
+       integer depend(t),intent(hide) :: n=len(t)
+       real*8 dimension(n),depend(n,k),check(len(c)==n),intent(in) :: c
+       integer :: k
+       integer depend(k),check(0<=nu && nu<=k) :: nu = 1
+       real*8 dimension(m) :: x
+       real*8 dimension(m),depend(m),intent(out) :: y
+       integer depend(x),intent(hide) :: m=len(x)
+       integer check(0<=e && e<=2) :: e=0
+       real*8 dimension(n),depend(n),intent(cache,hide) :: wrk
+       integer intent(hide) :: ier
+     end subroutine splder
+
+
+     subroutine parcur(iopt,ipar,idim,m,u,mx,x,w,ub,ue,k,s,nest,n,t,nc,c,fp,wrk,lwrk,iwrk,ier)
+       ! in parcur.f
+       threadsafe
+       integer check(iopt>=-1 && iopt <= 1):: iopt
+       integer check(ipar == 1 || ipar == 0) :: ipar
+       integer check(idim > 0 && idim < 11) :: idim
+       integer intent(hide),depend(u,k),check(m>k) :: m=len(u)
+       real*8 dimension(m), intent(inout) :: u
+       integer intent(hide),depend(x,idim,m),check(mx>=idim*m) :: mx=len(x)
+       real*8 dimension(mx) :: x
+       real*8 dimension(m) :: w
+       real*8 :: ub
+       real*8 :: ue
+       integer optional, check(1<=k && k<=5) :: k=3.0
+       real*8 optional, check(s>=0.0) :: s = 0.0
+       integer intent(hide), depend(t) :: nest=len(t)
+       integer intent(out), depend(nest) :: n=nest
+       real*8 dimension(nest), intent(inout) :: t
+       integer intent(hide), depend(c,nest,idim), check(nc>=idim*nest) :: nc=len(c)
+       real*8 dimension(nc), intent(out) :: c
+       real*8 intent(out) :: fp
+       real*8 dimension(lwrk), intent(inout) :: wrk
+       integer intent(hide),depend(wrk) :: lwrk=len(wrk)
+       integer dimension(nest), intent(inout) :: iwrk
+       integer intent(out) :: ier
+     end subroutine parcur
+
+     ! Fake common block for indicating the integer size
+     integer :: intvar
+     common /types/ intvar
+  end interface
+end python module dfitpack
+

@@ -21,7 +21,7 @@ def configuration(parent_package='',top_path=None):
         f2py_options = None
         define_macros = []
 
-    config = Configuration('opspline2', parent_package, top_path)
+    config = Configuration('opspline', parent_package, top_path)
 
     fitpack_src = [join('fitpack', '*.f')]
     config.add_library('fitpack', sources=fitpack_src,
